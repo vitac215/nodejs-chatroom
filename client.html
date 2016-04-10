@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Chat Room</title>
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.min.js"></script>
+    	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/start/jquery-ui.css"> 
+
+    	<style>
+			body {
+			  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+			  font-size: 16px;
+			  color: #606c71;
+			}
+
+			p.userlistnode {
+				line-height: 50%;
+				margin-left: 2%;
+			}
+
+			p.chatnode {
+				line-height: 0;
+			}
+
+			.welcome {
+				text-align: center;
+				border: 2px solid #a1a1a1;
+				border-radius: 25px;
+				background: #e6e6e6;
+				position: fixed;
+				width: 97%;
+			}
+
+			#welcome {
+				font-size: 20px;
+				font-weight:bold;
+				margin: 5px;
+			}
+
+			#loginStatus {
+				margin: 5px;
+			}
+
+			.roomtitle {
+				display: inline;
+			}
+
+			#userlist {
+				border: 2px solid #a1a1a1;
+				border-radius: 25px;
+				background: #e6e6e6;
+				top: 12%;
+			    bottom: 2%;
+			    width: 18%;
+			    padding: 10px;
+			    position:fixed;
+			}
+
+			#userlistnode {
+				margin-top: 8px;
+			}
+
+			#roomname {
+				border: 2px solid #a1a1a1;
+				border-radius: 10px;
+				background: #e6e6e6;
+			    top: 12%;
+			    left: 22%;
+			    right: 22%;
+			    padding: 5px 10px 5px 10px;
+			    position:fixed;
+			}
+
+			#roomlist {
+			    border: 2px solid #a1a1a1;
+			    border-radius: 25px;
+			    background: #e6e6e6;
+			    top: 12%;
+			    bottom: 2%;
+			    right: 1%;
+			    width: 18%;
+			    padding: 10px;
+			    position: fixed;
+			}
+
+			#privateroomlist {
+				border-top: 2px solid #a1a1a1;
+				margin-top: 10px;
+			}
+
+			.chatlog {
+				border: 2px solid #a1a1a1;
+				border-radius: 10px;
+			    background: #ffffff;
+			    top: 17%;
+			    left: 22%;
+			    right: 22%;
+			    bottom: 18%;
+				padding: 10px;
+			    position:fixed;
+			    overflow: scroll;  
+			}
+
+			.msgbox {
+			    border: 2px solid #a1a1a1;
+			    border-radius: 10px;
+			    background: #e6e6e6;
+			    top: 90%;
+			    right: 22%;
+			    left: 22%;
+			    bottom: 2%;
+			    padding: 10px;
+			    position: fixed;
+			}
+
+			#msgarea {
+				width: 75%;
+			}
+
+			#pmarea {
+				width: 62%;
+				margin-right: 2%;
+			}
+
+			#pmeduser {
+				width: 20%;
+				margin-right: -8%;
+			}
+
+			#sendmsg1, #sendmsg2 {
+				left: 10%;
+			}
+
+			.btn {
+				border-radius: 10px;
+				font-size: 15px;
+				color: #fff;
+				background-color: #99ccff;
+				padding: 2px 8px 2px 8px;
+				text-decoration: none;
+				position: relative;
+				display: inline-block;
+				cursor: pointer;
+			}
+
+			.btn:hover {
+				background-color: #b3d7ff;
+			}
+
+			#btn {
+			    border: 2px solid #a1a1a1;
+			    border-radius: 10px;
+			    background: #e6e6e6;
+			    top: 82%;
+			    bottom: 10%;
+			    right: 22%;
+			    left: 22%;
+			    padding: 10px;
+			    position: fixed;
+			}
+
+			#btn_enterRoom {
+				top: 92%;
+				right: 10%;
+				left: 80%;
+				width: 18%;
+				position: fixed;
+			}
+
+			#btn_kick {
+				top: 92%;
+				left: 1.6%;
+				width: 5%;
+				position: fixed;
+			}
+
+			#btn_ban {
+				top: 92%;
+				left: 6.7%;
+				position: fixed;
+			}
+
+			#btn_pm {
+				top: 92%;
+				left: 14.4%;
+				width: 5%;
+				position: fixed;
+			}
+
+			#fontcolor {
+				margin-left: 1.3%;
+				margin-right: -8%;
+			}
+
+			#btn_deleteRoom {
+			    top: 84%;
+			    left: 48.1%;
+			    margin-left: 20.5%;
+			    position: fixed;	
+			}
+
+			/*stuff to hide*/
+			.msgbox, .dialogs, #btn_createPublicRoom, #btn_createPrivateRoom, #btn_kick, #btn_ban, #btn_pm, .pmbox, #btn_msg, #btn_deleteRoom {
+				display: none;
+			}
+    	</style>
+	</head>
+
+
+
+	<body>
+	   	<div class="welcome">
+			<p id="welcome">Welcome to the Online Chat Room!</p>
+	    	<p id="loginStatus">Welcome, Guest</p>
+	    </div> <!-- end of welcome -->
+
+    	<div class="box">
+	      	<div id="userlist"><b>Current Users: </b></div>
+	      	<div id="roomname"><b>Current Room</b>: <div class="roomtitle" id="public">Lobby</div></div>
+	      	<div id="roomlist">
+		      	<div id="publicroomlist"><b>Public Rooms: </b></div>
+		      	<div id="privateroomlist"><b>Private Rooms: </b></div>
+			</div>
+			<button id="btn_enterRoom" class="btn" onclick=enterRoom()>Enter</button>
+		</div> <!-- end of box -->
+
+		<div class="chatlog">
+		</div> <!-- end of chatlog -->
+
+
+		<div class="msgbox">
+			<div class="toallmsgbox">
+			    <input type="text" id="msgarea">
+			    <select id="fontcolor">
+					<option>font color:</option>
+					<option>default</option>
+					<option>brown</option>
+					<option>red</option>
+					<option>yellow</option>
+					<option>green</option>
+					<option>blue</option>
+					<option>pink</option>
+					<option>white</option>
+			    </select>
+			    <button id="sendmsg1" class="btn" onclick=sendMessage()>Send</button>
+		    </div>
+			<div class="pmbox">
+			    <input type="text" id="pmarea">
+			    To: 
+			    <input type="text" id="pmeduser" placeholder="username">
+			    <button id="sendmsg2" class="btn" onclick=pm()>Send</button>
+		    </div>		    	
+		</div> <!-- end of messagebox -->
+
+
+		<div id="btn">
+		    <button id="btn_adduser" class="btn" onclick=userdialog()>New User</button>
+		    <button id="btn_msg" class="btn" onclick=showtoallmsgbox()>Message</button>
+		    <button id="btn_createPublicRoom" class="btn" onclick=createPublicRoomdialog()>Create Public Room</button>
+		    <button id="btn_createPrivateRoom" class="btn" onclick=createPrivateRoomdialog()>Create Private Room</button>
+		    <button id="btn_deleteRoom" class="btn" onclick=deleteRoom()>Delete Room</button>
+		    <button id="btn_kick" class="btn" onclick=kickdialog()>Kick</button>
+		    <button id="btn_ban" class="btn" onclick=bandialog()>Ban/Unban</button>
+		    <button id="btn_pm" class="btn" onclick=showpmbox()>PM</button>
+		</div> <!-- end of btn -->
+
+
+		<div class="dialogs">
+			<!-- dialog: add user -->
+			<div id="adduserdialog" title="New User">
+				Your nickname:
+			    <input type="text" id="username" placeholder="nickname">
+			    <button id="add" onclick=usernamecheck()>Create User</button>
+			</div>
+			<!-- dialog: create public rooms -->
+			<div id="createPublicRoomdialog" title="Create New Public Room"> 
+				Room Name:
+			    <input type="text" id="publicroomname" placeholder="Room Name">
+			    <button id="createpublic" onclick=createPublicRoom()>Create</button>
+			</div>
+			<!-- dialog: create private rooms -->
+			<div id="createPrivateRoomdialog" title="Create New Private Room">
+				Room Name:
+			    <input type="text" id="privateroomname" placeholder="Room Name">
+			    Room Password:
+			    <input type="password" id="privateroompwd" placeholder="Room Password">
+			    <button id="createprivate" onclick=createPrivateRoom()>Create</button>
+			</div>
+			<!-- dialog: kick -->
+			<div id="kickdialog" title="Kick a User">
+				Username:
+			    <input type="text" id="kickeduser" placeholder="User to be kicked">
+			    <button id="kick" onclick=kick()>Kick</button>
+			</div>
+			<!-- dialog: ban -->
+			<div id="bandialog" title="Ban a User">
+				Username:
+			    <input type="text" id="banneduser" placeholder="User to be banned">
+			    <button id="ban" onclick=ban()>Ban</button>
+				<button id="unban" onclick=unban()>Unban</button>
+			</div>
+		</div> <!-- end of dialog box -->
+
+
+	<script type="text/javascript">
+
+    	// Global variables 
+    	var username = "";
+    	var roomuserlist = [];   // Store users in a specific room
+    	var publicroomlist = [];
+    	var privateroomlist = [];
+    	var fontcolor = "#606c71";
+
+
+    // Open the dialogs
+        // Open adduser dialog
+		function userdialog() {
+            $("#adduserdialog").dialog();
+        }
+
+        // Open create public room dialog
+        function createPublicRoomdialog() {
+        	$("#createPublicRoomdialog").dialog();
+        }
+
+        // Open create private room dialog
+        function createPrivateRoomdialog() {
+        	$("#createPrivateRoomdialog").dialog();
+        }
+
+        // Open the kick dialog
+        function kickdialog() {
+        	$("#kickdialog").dialog();
+        }
+
+        // Open the ban dialog
+        function bandialog() {
+        	$("#bandialog").dialog();
+        }
+
+		function showpmbox() {
+			// Hide the toallmsgbox
+			$(".toallmsgbox").hide();
+			// Show the pmbox
+			$(".pmbox").show();
+			// Show the message button
+			$("#btn_msg").show();
+			// Clear the input field
+			$("#msgarea").val("");
+			// Hide the pm button
+			$("#btn_pm").hide();
+		}
+
+		function showtoallmsgbox() {
+			// Hide the pmbox
+			$(".pmbox").hide();
+			// Show the toallmsgbox
+			$(".toallmsgbox").show();
+			// Hide the message button
+			$("#btn_msg").hide();
+			// Show the pm button
+			$("#btn_pm").show();
+			// Clear the input field
+			$("#pmarea").val("");
+		}
+
+
+         
+		// Open socket io connection
+		var socketio = io.connect();
+
+        // Hear back from server side
+		socketio.on("message_to_client", function(data) {
+			//console.log(data.fontcolor);
+			//Append an HR thematic break and the escaped HTML of the new message
+			$(".chatlog").append("<hr>");
+			$(".chatlog").append("<p class='chatnode' style='color: " + data.fontcolor + "'>"+data['message']+"</p>");
+		});
+
+
+		// Check the username 
+		function usernamecheck() {
+			var uncheckedusername = $("#username").val();
+        	// Check if the username is legal
+        	if ($("#username").val() == "") {
+            	alert("Please enter your username");    	
+            	return false;	// Prevent refreshing the page
+        	}
+        	else if ($("#username").val().length < 2) {
+        		alert("The length of the username should be longer than 2");
+        		return false;
+        	}
+        	else if ($("#username").val().length > 10) {
+        		alert("The length of the username should be no longer than 10");
+        		return false;
+        	}		
+        	// Send the username to the server side to check if it already exists
+        	socketio.emit("logincheck", {uncheckedusername: uncheckedusername});
+		}
+
+
+		// Received the checked sign from the server side
+		socketio.on("checkedUsername", function(data) {
+			if (data.checked == true) {
+				alert("This username already exists");
+				return false;
+			}
+			else {
+				login();
+			}
+		});
+
+
+
+        // Show btns and display nick name after the user is loggined
+        function login() {
+				username = $("#username").val();
+				//console.log(username);
+	        	// Send the username to the server side
+				socketio.emit("userlogined", {username: username});
+				// Display an enter message in the chatlog of the default lobby room
+				var msg = username + " entered the room.";
+				socketio.emit("message_to_server", {message: msg ,fontcolor: fontcolor});
+
+	        	// Change the welcome phrase
+	        	$("#loginStatus").html("Welcome, " + username);
+	        	// Close the newuser dialog 
+	        	$("#adduserdialog").dialog("close");  
+	        	// Hide the new user btn
+	        	$("#btn_adduser").hide();
+	        	// Display the create room btn and the msgbox
+	        	$("#btn_createPublicRoom").show();
+	        	$("#btn_createPrivateRoom").show();
+	        	$("#btn_pm").show();
+	        	$(".msgbox").show();
+        }
+
+
+
+        // Create public rooms, send to server side
+        function createPublicRoom() {
+        	var existingRoom = false;
+        	// Check if the room name already exists
+        	for (i=0; i<publicroomlist.length; i++) {
+        		if ($("#publicroomname").val() == publicroomlist[i].name) {
+        			existingRoom = true;
+        		}
+        	}
+     		// Check error cases
+        	if ($("#publicroomname").val()=="") {
+        		alert("Please enter the roomname");
+        		return false; // to prevent the page reload
+        	}
+        	else if ($("#publicroomname").val().length > 15) {
+        		alert("The length of the roomname should be no longer than 15");
+        		return false;
+        	}
+        	else if (existingRoom == true) {
+        		alert("Room already exists");
+        		return false;
+        	}
+        	else {
+	        	var publicroomname = $("#publicroomname").val();
+	        	//console.log(publicroomname);
+	        	socketio.emit("publicRoomCreated", {publicroomname: publicroomname});
+	        	$("#createPublicRoomdialog").dialog("close");	
+        	}
+        	// Clear the input field
+        	$("#publicroomname").val("");
+        }
+
+
+
+        // Create private rooms, send to server side
+        function createPrivateRoom() {
+        	var existingRoom = false;
+        	// Check if the room name already exists
+        	for (i=0; i<privateroomlist.length; i++) {
+        		if ($("#privateroomname").val() == privateroomlist[i].name) {
+        			existingRoom = true;
+        		}
+        	}
+
+        	if ($("#privateroomname").val()=="") {
+        		alert("Please enter the roomname");
+        		return false;
+        	}
+        	else if ($("#privateroomname").val().length > 15) {
+        		alert("The length of the roomname should be no longer than 15");
+        		 return false; 
+        	}
+        	else if (existingRoom == true) {
+        		alert("Room already exists");
+        		return false;
+        	}
+        	else {
+	        	var privateroomname = $("#privateroomname").val();
+	        	var privateroompwd = $("#privateroompwd").val();
+	        	socketio.emit("privateRoomCreated", {privateroomname: privateroomname, privateroompwd: privateroompwd});
+	        	$("#createPrivateRoomdialog").dialog("close");	
+        	}
+        	// Clear the input field
+        	$("#privateroomname").val("");
+        	$("#privateroompwd").val("");
+        }
+
+
+
+        // Enter room and send the request to the server side
+        function enterRoom() {
+        	//var oldroom = $(".roomtitle").html();
+        	var oldroomType = $(".roomtitle").attr("id");
+
+        	var roomSelected = $('input[name="radioans"]:checked').val();
+        	var roomSelectedType = $('input[name="radioans"]:checked').attr("class");
+	        	// console.log(roomSelected);
+	        	// console.log(roomSelectedType);
+        	// Check which one is selected 
+        	if (roomSelected == undefined) {
+        		alert("Please select a room to enter");
+        		return false;
+        	}
+        	else {
+        		// If this is a private room, request password to enter
+        		if (roomSelectedType == "privateradio") {
+        			var enteredpwd = prompt("Please enter the password");
+        				// console.log(enteredpwd);
+        			if (enteredpwd == "") {
+        				alert("Please enter the password!");
+        				return false;
+        			}
+        			// Submit the password to the server side
+        			socketio.emit("enterPrivateRoom", {privateroomname: roomSelected, pwd: enteredpwd, oldroomtype: oldroomType});
+        		}
+        		else {
+        				//alert(roomSelected);
+        			socketio.emit("enterPublicRoom", {publicroomname: roomSelected, oldroomtype: oldroomType});
+        		}
+        	}
+        	
+        }
+
+
+
+        // Function to kick a user. Send the one to be kicked and room information to the server side
+		function kick() {
+         	var kickeduser = $("#kickeduser").val();
+         	//console.log(kickeduser);
+         	var roomType = $(".roomtitle").attr("id");
+         	socketio.emit("kicking", {kickeduser: kickeduser, roomtype: roomType});
+         	// Clear the input
+         	$("#kickeduser").val("");
+         	// Close the dialog
+         	$("#kickdialog").dialog("close"); 
+
+		}
+
+
+		// Receive the checkkick information from the server side
+		socketio.on("kickcheck", function(data) {
+			if (data.userexist == false) {
+				alert("The user you want to kick is not currently in this room");
+				// Clear the input field
+				$("#kickeduser").val("");
+				return false;
+			}
+		}); 
+
+
+		function ban() {
+			var banneduser = $("#banneduser").val();
+			//console.log(banneduser);
+			var roomType = $(".roomtitle").attr("id");
+         	socketio.emit("banning", {banneduser: banneduser, roomtype: roomType});
+         	// Clear the input
+         	$("#banneduser").val("");
+         	// Close the dialog
+         	$("#bandialog").dialog("close"); 		
+		}
+
+
+		// Receive the checkban information from the server side
+		socketio.on("bancheck", function(data) {
+			if (data.userexist == false) {
+				alert("The user you want to ban does not exist");
+				// Clear the input field
+				$("#banneduser").val("");
+				return false;
+			}
+		}); 
+
+
+
+		function unban() {
+			var unbanneduser = $("#banneduser").val();
+			//console.log(unbanneduser);
+			var roomType = $(".roomtitle").attr("id");
+         	socketio.emit("unbanning", {unbanneduser: unbanneduser, roomtype: roomType});
+         	// Clear the input
+         	$("#banneduser").val("");
+         	// Close the dialog
+         	$("#bandialog").dialog("close"); 			
+		}
+
+		// Receive the checkunban information from the server side
+		socketio.on("unbancheck", function(data) {
+			if (data.userexist == false) {
+				alert("The user you want to unban is not the banlist");
+				// Clear the input field
+				$("#banneduser").val("");
+				return false;
+			}
+		}); 
+
+
+
+		// Send the pmeduser and pmarea information to the server side
+		function pm() {
+			var pmeduser = $("#pmeduser").val();
+			var pmmsg = $("#pmarea").val();
+			var oldroomType = $(".roomtitle").attr("id");
+			socketio.emit("pming", {pmeduser: pmeduser, pmmsg: pmmsg, oldroomtype: oldroomType});
+			$("#pmarea").val("");
+		}
+
+
+		// Receive the checkpm information from the server side
+		socketio.on("pmcheck", function(data) {
+			if (data.userexist == false) {
+				alert("The user you want to pm is not in the room");
+			}
+			if (data.pmedself == true) {
+				alert("You cannot pm yourself");
+			}
+			$("#pmeduser").val("");
+			return false;
+		}); 
+
+
+
+		function deleteRoom() {
+			// Check if the user really wants to delete the room
+			if (confirm("Are you sure that you want to delete this room?") == true) {
+				// Get the roomname and roomtype
+				var roomname = $(".roomtitle").html();
+				var roomtype = $(".roomtitle").attr("id");
+				socketio.emit("deleteRoom", {roomname: roomname, roomtype: roomtype});
+			}
+			else {
+				return false;
+			}
+		}
+
+
+
+        // Update the roomusers list
+        socketio.on("roomusersUpdate", function(data) {
+        	// Clear the userlist 
+        	roomuserlist.splice(0, roomuserlist.length);
+        	// Update the userlist
+        	for (i=0; i<data['roomusers'].length; i++) {
+        		roomuserlist[i] = data['roomusers'][i];
+        	}
+        	//console.log(userlist);
+
+        	// Clear the previous list
+        	$("#userlist").empty();
+        	// Append the title
+        	$("#userlist").html("<b>Current Users: </b>");
+        	// Append the usernames
+        	for (i=0; i<roomuserlist.length; i++) {
+        		$("#userlist").append("<p class='userlistnode'>" + roomuserlist[i] + "</p>");
+        	}
+        });
+
+
+
+        // Update the roomlist
+        socketio.on("roomUpdate", function(data) {
+        	// Clear the publicroomlist and privateroom list
+        	publicroomlist.splice(0, publicroomlist.length);
+        	privateroomlist.splice(0, privateroomlist.length);
+
+        	// Fill the public roomlist
+        	for (i=0; i<data['publicrooms'].length; i++) {
+        		publicroomlist[i] = data['publicrooms'][i];
+        	}
+        		// console.log(publicroomlist);
+        	$("#publicroomlist").empty();
+        	$("#publicroomlist").append("<b>Public Rooms: </b>");
+        	// Append the public rooms
+        	for (i=0; i<publicroomlist.length; i++) {
+        		var publiclistroomname = publicroomlist[i].name;
+        		$("#publicroomlist").append('<p><input type="radio" name="radioans" class="publicradio" value="' + publiclistroomname + '">' + publiclistroomname + '</p>');
+        	}
+
+        	// Fill the private roomlist
+        	for (i=0; i<data['privaterooms'].length; i++) {
+        		privateroomlist[i] = data['privaterooms'][i];
+        	}
+        		// console.log(privateroomlist);
+        	$("#privateroomlist").empty();
+        	$("#privateroomlist").append("<b>Private Rooms: </b>");
+        	// Append the private rooms
+        	for (i=0; i<privateroomlist.length; i++) {
+        		var privateroomname = privateroomlist[i].name;
+        		$("#privateroomlist").append('<p><input type="radio" name="radioans" class="privateradio" value="' + privateroomname + '">' + privateroomname + '</p>');
+        	}
+        });
+
+
+
+        // Change the room layout 
+        socketio.on("roomEntered", function(data) {
+        	var insert;
+        	// Change the roomname
+        	if (data.roomname == "Lobby") {
+        		// If it's the lobby, do not appen owner information
+        		insert = '<b>Current Room: </b>'+'<div class="roomtitle" id="'+ data.roomtype + '">' + data.roomname + '</div>';
+        	}
+        	else {
+        		// Append the owner information
+        		insert = '<b>Current Room: </b>'+'<div class="roomtitle" id="'+ data.roomtype + '">' + data.roomname + '</div>' + ' (owned by ' + data.owner + ')';
+        	}
+        	
+        	$("#roomname").html(insert);
+        	// Clear the chatlog
+        	$(".chatlog").empty();
+
+        	// If the user is the owner of the room...
+        	if (data.ownercheck == true) {
+        		// Display the kick, ban, and deleteRoom buttons
+        		$("#btn_kick").show();
+        		$("#btn_ban").show();
+        		$("#btn_deleteRoom").show();
+        	}
+        	else {
+            	$("#btn_kick").hide();
+        		$("#btn_ban").hide();   
+        		$("#btn_deleteRoom").hide(); 		
+        	}
+        });
+
+
+        // Deal with banned user
+        socketio.on("bannedentering", function(data) {
+        	alert(data.message);
+        	return false;
+        });
+
+
+        // Deal with wrong password
+        socketio.on("wrongPwd", function(data) {
+        	// Display the alert message
+        	alert(data.message);
+        	return false;
+        });
+
+        // Put the kicked user into the lobby
+        socketio.on("kicked", function(data) {
+        	socketio.emit("enterPublicRoom", {publicroomname: data.newroom, oldroomtype: data.oldroomtype});
+        	alert("You are kicked out from " + data.oldroom + " by the owner");
+			// Clear the input field
+			$("#kickeduser").val("");
+        	return false;
+        });
+
+
+        // Put the banned user into the lobby
+        socketio.on("banned", function(data) {
+        	socketio.emit("enterPublicRoom", {publicroomname: data.newroom, oldroomtype: data.oldroomtype});
+        	alert("You are banned from entering " + data.oldroom + " by the owner");
+			// Clear the input field
+			$("#banneduser").val("");
+        	return false;
+        });
+
+
+        // When a room is deleted, move all the users into the lobby
+        socketio.on("deleteRemove", function(data) {
+        	socketio.emit("deleterEnter", {publicroomname: data.newroom});
+        	alert("The room " + data.oldroom + " is deleted by the owner");
+        	return false;
+        });
+
+
+
+		// Send stuff to the server side
+		// Send message and username
+		function sendMessage(){
+			var msg = username + ": " + $("#msgarea").val();
+
+			// Check if the user wants to specify the color of the text
+			fontcolor = $("#fontcolor").val();
+			//console.log(fontcolor);
+			if (fontcolor != "font color:") {
+				// If the user wants to change the color of the message...
+				// Send the message to the server side with the selected color
+				if (fontcolor == "default") {
+					fontcolor = "#606c71";
+				}
+				socketio.emit("message_to_server", {message: msg, fontcolor: fontcolor});
+			}
+			else {
+				fontcolor = "#606c71";
+				// Send the message to the server side
+				socketio.emit("message_to_server", {message: msg, fontcolor: fontcolor});
+			}
+			// Clear the message area
+			$("#msgarea").val("");
+		}
+
+		// function changefontcolor() {
+		// 	var chatnode = $(".chatlog");
+		// 	var fontcolor = $("#fontcolor").val();
+		// 	if (fontcolor != "font color:") {
+		// 		for (i=0; i<chatnode.children().length; i++) {
+
+		// 		}
+		// 	}
+
+		// }
+
+
+
+
+	</script>
+
+	</body>
+
+
+</html>

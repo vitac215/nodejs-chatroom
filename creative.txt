@@ -1,0 +1,24 @@
+Name: KeZhou(Vita) Chen, Chenyang(Clara) Wang
+Student ID: 423121, 445113
+
+Link to the Chat Room: 
+http://ec2-52-25-45-59.us-west-2.compute.amazonaws.com:3456
+
+
+Basic Usage:
+Click the "new user" button to enter your nickname and you are ready to go.
+
+
+Brief description for the creative portion:
+
+We add the following functions
+(1) Unban a user
+     The creator of room can unban a user s/he has banned before.
+(2) Delete room
+     Users can delete the room s/he created.
+     All of the users in that room will receive an alert saying that the room is deleted,
+     and they will be automatically moved to the lobby.
+(3) Change Font Color
+     Users can choose to change the font color from a range of predetermined colors when they send messages.
+     Only that specific message will be colored.
+
